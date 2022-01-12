@@ -55,10 +55,10 @@ MetBrewer: Palettes inspired by works at the Metropolitan Museum of Art in New Y
 ```{r}
 getwd()
 
-# install.packages("tidyverse")
-# install.packages("dataRetrieval")
-# install.packages("zoo")
-# install.packages("ggrepel")
+install.packages("tidyverse")
+install.packages("dataRetrieval")
+install.packages("zoo")
+install.packages("ggrepel")
 
 library(tidyverse)
 library(dataRetrieval)
