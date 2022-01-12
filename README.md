@@ -2,3 +2,4 @@
 ENVIRON 790.02: Water Data Analytics (Duke University Spring 2022)
 
 User: Nadia Swit
+#nadia.swit@duke.edu 
