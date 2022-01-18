@@ -42,14 +42,27 @@ library(dataRetrieval)
 library(zoo)
 
 #set theme
+
+mytheme <- theme_classic(base_size = 14) + 
+  theme(axis.text = element_text(color = "black"), 
+        legend.position = "right", 
+        legend.box.background = element_rect(color="black"), legend.background = element_blank(),  
+        plot.title=element_text(hjust = 0.5))
+#makes font size bigger, puts legend on right, puts box around legend, centers title in middle
+theme_set(mytheme) #setting for all subsequent plots
 ```
 
 3. Upload discharge data for the Eno River at site 02096500 for the same dates as we studied in class (2012-01-01 through 2021-12-31). Obtain data for discharge. Rename the columns with informative titles, as we did in class. 
 
 ```{r}
-#load discharge data for Enor river site
+#load discharge data for Eno river site
+EnoDischarge <- readNWISdv(siteNumbers = "02096500",
+                     parameterCd = "00060", # discharge (ft3/s)
+                     startDate = "2012-01-01",
+                     endDate = "2021-12-31")
 
 #Rename columns
+names(EnoDischarge)[4:5] <- c("Discharge_cfs", "Approval.Code")
 ```
 
 
@@ -64,19 +77,45 @@ library(zoo)
 * Add a legend. (hint: Google "add legend two geom layers ggplot")
 
 ```{r}  
+EnoPlot <- 
+  ggplot(EnoDischarge, aes(x = Date, y = Discharge_cfs)) +
+         geom_line() +
+         xlab("Year")
 
+#Added new row for cms
+EnoDischarge <- mutate(EnoDischarge, Discharge_cms = Discharge_cfs*0.0283)
+
+#Added new row for 30-day rolling mean of metric discharge
+EnoDischarge <- mutate(EnoDischarge, Discharge_rollmean = rollmean(Discharge_cms, 30, fill=NA)) #filling value to the left/within/right of the data range (to fill empty spaces before 30 day average)
+
+#From Kateri - added pipe to be done in one line 
+#EnoDischarge <- EnoDischarge %>% 
+ # mutate(Discharge_cms = Discharge_cfs*0.0283, 
+        # Discharge_rollmean = rollmean(Discharge_cms, 30, fill=NA)
+
+#Create visualization
+EnoPlot2 <- ggplot(data=EnoDischarge, aes(x= Date))+
+  geom_line(aes(y=Discharge_cms, color = "Daily Discharge")) +
+  geom_line(aes(y=Discharge_rollmean, color = "Rolling 30 Day Avg")) +
+  scale_y_log10(name=expression("Discharge (m"^3*"/s)")) +
+  labs(x="Date", title="Eno River Discharge \nSite 02096500") +
+  scale_fill_manual(name="", values = c("Daily Discharge" = "blue")) +
+  scale_fill_manual(name="", values = c("Rolling 30 Day Avg" = "green"))
+
+EnoPlot2
+  
 
 ```
 
 5. In what ways was the second plot a more effective visualization than the first? 
 
-> ANSWER: 
+> ANSWER: You can better visualize the difference in the daily discharge and the rolling 30 day average with the different colors. Likewise, making them the same units was helpful.
 
 6. What portions of the coding were challenging for you?
 
-> ANSWER: 
+> ANSWER: The rolling 30-day discharge (I did not know how to fill the NA values) and the aesthetics for the two lines - still working on removing the title from legend.
 
 7. Interpret the graph you made. What are the things you notice about within- and across-year variability, as well as the differences between daily values and 30-day rolling mean?
 
-> ANSWER: 
+> ANSWER: The average values are smaller in magnitude compared to daily values. It would also be helpful to have the months to better understand seasonality of the data; however, you can see that the discharge minimum is increasing over time, as well as the maximum. 
 
