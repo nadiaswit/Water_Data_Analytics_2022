@@ -103,7 +103,8 @@ EnoPlot2 <- ggplot(data=EnoDischarge, aes(x= Date))+
   scale_fill_manual(name="", values = c("Rolling 30 Day Avg" = "green"))
 
 EnoPlot2
-  
+
+#need to use scale_color_manual to change color names --> scale_color_manual(values = c("Daily Discharge" = "darkgray", "Rolling 30 Day Avg" = "darkgreen"))
 
 ```
 
