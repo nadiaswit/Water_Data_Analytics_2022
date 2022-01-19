@@ -33,6 +33,9 @@ library(rLakeAnalyzer)
 
 # Load data
 NTLdata <- read.csv("./Data/Raw/NTL-LTER_Lake_ChemistryPhysics_Raw.csv")
+#North Temperate Lakes Ecological Research Station; Northern Wisconsin
+#read_csv and read.csv - both can read csv files; however read_csv is faster and more efficient (used in dplyr package)
+#here package works with relative file paths
 
 # set ggplot theme
 theme_set(theme_classic())
@@ -50,28 +53,30 @@ Common steps/checks for data wrangling:
 
 ```{r}
 # Is the date column perceived as a date by R?
-class(NTLdata$sampledate)
-NTLdata$sampledate <- as.Date(NTLdata$sampledate, format = "%m/%d/%y")
+class(NTLdata$sampledate) #$ references a column
+NTLdata$sampledate <- as.Date(NTLdata$sampledate, format = "%m/%d/%y") #want to change column to date; % is how function deals with format to date/time information
 class(NTLdata$sampledate)
 # What does this column look like now?
 
 # Remove rows that contain NAs in temperature column
 dim(NTLdata)
-NTLdata <- NTLdata %>%
-  drop_na(temperature_C)
+NTLdata <- NTLdata %>% 
+  drop_na(temperature_C) #don't need to specify column since already referencing dataset with function (dplyr) with the pipe function
+#can also write in one line NTLdata <- drop_na(NTLdata, temperature_C) but easier to have a pipe to add more steps
+#pipe always happens outside of a function
 dim(NTLdata)  
 
 # How many observations are there for each lake?
 summary(NTLdata$lakename)
-summary(as.factor(NTLdata$lakename))
+summary(as.factor(NTLdata$lakename)) #counts number of time lake name appears; removed NAs from temp also tells how many temp measures
 
 # Let's choose the two lakes with the most data
-NTLdata_PeterPaul <- NTLdata %>%
-  filter(lakename %in% c("Paul Lake", "Peter Lake"))
+NTLdata_PeterPaul <- NTLdata %>% 
+  filter(lakename %in% c("Paul Lake", "Peter Lake")) #filter takes rows in dataframe; %in% = includes concatenation (Peter and Paul Lakes)
 
 # What is another way to use the filter command to get to the same result?
 NTLdata_PeterPaul <- NTLdata %>%
-  filter(lakename == "Paul Lake" | lakename == "Peter Lake")
+  filter(lakename == "Paul Lake" | lakename == "Peter Lake") # | means "or"
 
 # Make two data frames, one for each lake
 Pauldata <- NTLdata %>%
@@ -106,11 +111,17 @@ ggplot(Pauldata, aes(x = depth, y = temperature_C)) +
   geom_point(alpha = 0.5) +
   labs(y = expression("Temperature "(degree*C)), x = "Depth (m)")
 
+#reverse 
 ggplot(Pauldata, aes(x = temperature_C, y = depth, color = daynum)) +
   geom_point(alpha = 0.5) +
   scale_y_reverse() +
   scale_color_viridis_c() +
   labs(x = expression("Temperature "(degree*C)), y = "Depth (m)", color = "DOY")
+
+#epilimnion - upper water column (warmer)
+#hypolimnion - lower water column (cooler)
+#harder to mix water column when there is a big temperature difference; mix
+#dimictic lake - mixes twice during year (spring and fall will have mixing)
 
 ```
 
