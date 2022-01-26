@@ -120,8 +120,14 @@ ggplot(Pauldata, aes(x = temperature_C, y = depth, color = daynum)) +
 
 #epilimnion - upper water column (warmer)
 #hypolimnion - lower water column (cooler)
+
 #harder to mix water column when there is a big temperature difference; mix
+#mictic = mixing
+#due to thermal mass of water; cooler and warmer water have too much of a difference to mix; mixing due to warmer air temp; ice formation
 #dimictic lake - mixes twice during year (spring and fall will have mixing)
+#monomictic - mixes once; NC waters due to infrequent ice over
+#polymictic - mixes several times per year; tend not to see much seasonal stratification; shallower lake due to less thermal mass in different layers
+#amictic - always stratified, don't ever mix; very deep, sheltered lakes (bottom of hollow, experience a lot of weather patterns/storms)
 
 ```
 
@@ -148,6 +154,23 @@ ggplot(subset(Pauldata, year4 == 1993),
 
 # Now, make a plot as above but with dissolved oxygen saturation instead of temperature.
 
+DO_plot <- ggplot(subset(Pauldata, year4 == 1993), 
+       aes(x = dissolvedOxygen, y = depth, color = daynum)) +
+  geom_point(alpha = 0.5) +
+  scale_y_reverse() +
+  scale_color_viridis_c() +
+  labs(x = expression("Dissolved Oxygen (mg/L)", y = "Depth (m)", color = "DOY"))
+
+DO_plot
+
+#DO still same in Nov; static
+#DO concentrations in epilimnion (higher water column); wave motion incorporating oxygen into water (wave induced mixing); phytoplankton photsynthesizing during the day
+#slightly higher DO above lower depths above thermocline; zooplankton hang out there; nutrients also coming up from bottom; respiration occuring in the hypolimnion (dead and decaying algae sinking down); phytoplankton hanging out where they're getting the most light but also the most nutrients without expending too much energy
+#deep chlorophyll maximum
+
+#limnic eruption
+#higher concentrations of methane, CO2, NO2, as a product of anaerobic respiration
+#Lake Niose - amictic but mixing only due to tectonic plates; release of gases resulted in destruction of town; Lake Hibu?
 
 ```
 
@@ -172,7 +195,9 @@ Pauldata_thermo <- Pauldata %>%
 
 ggplot(Pauldata_thermo, aes(x = daynum, y = thermocline)) +
   geom_point() 
-  
+
+#metalimnion - has a band where there is some temperature change  
+#thermocline deepening as the year goes on
 ```
 
 How does thermocline depth change over the course of the year? When do we observe the most variability in thermocline depth?
@@ -207,11 +232,13 @@ ggplot(Pauldata_thermo, aes(x = daynum, y = thermocline, color = year4)) +
 # exercise: put the legend on top and relabel the aesthetics
 
 ggplot(subset(Pauldata, depth == 1),
-       aes(x = daynum, y = temperature_C, color = as.factor(year4))) +
+       aes(x = daynum, y = temperature_C, color = as.factor(year4))) + #can plot as continuous
   geom_point(alpha = 0.5) +
   geom_line() +
   scale_color_viridis_d()
 # exercise: relabel the aesthetics
+
+#expect to see interannual variability
 
 ```
 
