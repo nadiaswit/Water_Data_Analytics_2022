@@ -1,0 +1,126 @@
+---
+title: "Assignment 2: Physical Properties of Lakes"
+author: "Nadia Swit"
+output: pdf_document
+geometry: margin=2.54cm
+editor_options: 
+  chunk_output_type: console
+---
+
+## OVERVIEW
+
+This exercise accompanies the lessons in Water Data Analytics on the physical properties of lakes. 
+
+## Directions
+1. Change "Student Name" on line 3 (above) with your name.
+2. Work through the steps, **creating code and output** that fulfill each instruction.
+3. Be sure to **answer the questions** in this assignment document.
+4. When you have completed the assignment, **Knit** the text and code into a single PDF file.
+5. After completing your assignment, fill out the assignment completion survey in Sakai. 
+
+Having trouble? See the assignment's answer key if you need a hint. Please try to complete the assignment without the key as much as possible - this is where the learning happens!
+
+Target due date: 2022-01-25
+
+## Setup
+
+1. Verify your working directory is set to the R project file, 
+2. Load the tidyverse, lubridate, and rLakeAnalyzer packages
+3. Import the NTL-LTER physical lake dataset and set the date column to the date format. 
+4. Using the `mutate` function, add a column called Month. Remove temperature NAs.
+5. Set your ggplot theme (can be theme_classic or something else)
+
+```{r setup}
+#setup
+getwd()
+
+library(tidyverse)
+library(dataRetrieval)
+library(cowplot)
+library(lubridate)
+library(rLakeAnalyzer)
+
+#set ggplot theme
+theme_set(theme_classic())
+
+#import the NTL-LTER physical lake dataset
+NTLdata <- read.csv("./Data/Raw/NTL-LTER_Lake_ChemistryPhysics_Raw.csv") #directory didn't work when "./../" even thought couldn't find with other path characters
+
+#set date column to date format
+NTLdata$sampledate <- as.Date(NTLdata$sampledate, format = "%m/%d/%y")
+
+#Add month column and remove NAs
+NTLdata <- NTLdata %>%
+  mutate(month = format(sampledate, "%m")) %>%
+  drop_na(temperature_C)
+
+
+```
+
+## Creating and analyzing lake temperature profiles
+
+5. For the year 1993, plot temperature and dissolved oxygen profiles for all six lakes in the dataset (as two separate ggplots). Use the `facet_wrap` function to plot each lake as a separate panel in the plot. Plot day of year as your color aesthetic and use a reverse y scale to represent depth. 
+
+What seasonal trends do you observe, and do these manifest differently in each lake?
+
+Seasonal trends include: Temperature decreases in the cooler months but also with depth. There are two time periods (Nov-Dec) and (Sept-Oct) that have pretty consistent temperatures even when depth increases; for the latter months it is cooler at 5 degrees, whereas about 10 degrees earlier in the year. As for DO, the concentration is higher in the middle of the year (summer) and higher in the water column. However, at the end of the year it is pretty consistent at 8-11 mg/L. Although, early in the year around Jan-Mar it looks like it is also consistent at about 2-3 mg/L no matter the depth. While there is some variation, these levels may alsl be influenced by diurnal fluctuations.
+
+```{r temperature.oxygen.plots}
+#Created temperature plot
+Temp_plot <- ggplot(subset(NTLdata, year4 == 1993), 
+       aes(x = temperature_C, y = depth, color = daynum)) +
+  geom_point(alpha = 0.5) +
+  scale_y_reverse() +
+  scale_color_viridis_c() +
+  facet_wrap(vars(lakename)) +
+  labs(x = expression("Temperature "(degree*C)), y = "Depth (m)", color = "DOY") 
+
+Temp_plot
+
+#Created dissolved oxygen plot
+
+Oxygen_plot <- ggplot(subset(NTLdata, year4 == 1993), 
+        aes(x = dissolvedOxygen, y = depth, color = daynum)) +
+  geom_point(alpha = 0.5) +
+  scale_y_reverse() +
+  scale_color_viridis_c() +
+  facet_wrap(vars(lakename))+
+  labs(x = expression("Dissolved Oxygen (mg/L)", y = "Depth (m)", color = "DOY")) #why is depth lowercase?
+
+Oxygen_plot
+
+```
+
+6. Create a new dataset that calculates thermocline depths for all lakes on all dates (hint: you will need group by lake, year, month, DOY, and sample date).
+7. Plot thermocline depth by day of year for your newly made dataset. Color each point by lake name, make the points 50% transparent, and choose a color palette other than the ggplot default. 
+8. Create a boxplot of thermocline depth distributions split up by lake name on the x axis and by month as the fill color (hint: you will need to set Month as a factor). Choose a color palette other than the ggplot default, relabel axes and legend, and place the legend on the top of the graph.
+
+Do all the lakes have a similar seasonal progression of thermocline deepening? Which lakes have the deepest thermoclines, and how does this relate to their maximum depth? 
+
+```{r wrangling}
+#Group by lake
+Thermocline_dataset <- NTLdata %>%
+  group_by(lakename, year4, month, daynum, sampledate) %>%
+  summarise(thermocline = thermo.depth(wtr=temperature_C, depths = depth, seasonal = FALSE)) %>%
+  filter(thermocline > 1)
+  
+#Plot data
+Thermocline_plot <- ggplot(Thermocline_dataset, aes(x=daynum, y=thermocline)) + #where to put aes of lake color
+  geom_point(alpha=0.5, aes(color=lakename)) +
+  labs(x = "Day of Year", y = "Thermocline Depth (m)", color = "Lake") +
+  scale_color_viridis_d()
+
+Thermocline_plot
+
+#boxplot
+Thermo_box <- ggplot(Thermocline_dataset, aes(y=thermocline, x=lakename, fill = as.factor(month))) +
+  geom_boxplot() +
+  labs(x = "Lake", y="Thermocline depth (m)", fill = "month") +
+  scale_fill_viridis_d() +
+  theme(legend.position = "top")
+
+Thermo_box
+
+
+```
+
