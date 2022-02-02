@@ -122,5 +122,7 @@ Thermo_box <- ggplot(Thermocline_dataset, aes(y=thermocline, x=lakename, fill = 
 Thermo_box
 
 
+
+
 ```
 

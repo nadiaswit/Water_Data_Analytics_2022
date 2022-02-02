@@ -163,6 +163,7 @@ VerdePlot <-
   theme(plot.title = element_text(margin = margin(b = -10), size = 12), 
         axis.text.x = element_blank(), axis.title.x = element_blank())
 VerdePlot
+# Ariszona - drier climate; ephemeral stream
 
 BitterrootPlot <- 
   ggplot(CombinedDischarge, aes(x = Date, y = Bitterroot.Discharge)) +
@@ -180,12 +181,16 @@ SaukPlot <-
         axis.text.x = element_blank(), axis.title.x = element_blank())         
 SaukPlot
 
+#Minnesota
+
 NehalemPlot <- 
   ggplot(CombinedDischarge, aes(x = Date, y = Nehalem.Discharge)) +
   geom_line() +
   labs(x = "", y = expression("Discharge (ft"^3*"/s)"), title = "Nehalem River") + 
   theme(plot.title = element_text(margin = margin(b = -10), size = 12))
 NehalemPlot
+
+#Pacific Northwest
 
 CombinedPlot <- 
   plot_grid(EnoPlot, VerdePlot, BitterrootPlot, SaukPlot, NehalemPlot, 
@@ -212,7 +217,7 @@ Let's take the Bitterroot River, which displays a clear seasonal cycle. Let's de
 ```{r}  
 BitterrootDischarge.Historical <- readNWISdv(siteNumbers = "12344000",
                      parameterCd = "00060", # discharge (ft3/s)
-                     startDate = "")
+                     startDate = "") #will grab entire period of record (since didn't specify time period)
 
 names(BitterrootDischarge.Historical)[4:5] <- c("Discharge", "Approval.Code")
 
@@ -221,15 +226,17 @@ BitterrootDischarge.Historical <- mutate(BitterrootDischarge.Historical,
 
 BitterrootDischarge.Pattern <- BitterrootDischarge.Historical %>%
   group_by(DOY) %>%
-  summarise(Median.Discharge = median(Discharge), 
-            p95.Discharge = quantile(Discharge, 0.95, na.rm = TRUE),
+  summarise(Median.Discharge = median(Discharge, na.rm=TRUE), 
+            p95.Discharge = quantile(Discharge, 0.95, na.rm = TRUE), #capturing high and low flows across dataset
             p5.Discharge = quantile(Discharge, 0.05, na.rm = TRUE))
 
 ggplot(BitterrootDischarge.Pattern, aes(x = DOY)) +
-  geom_line(aes(y = Median.Discharge)) +
+  geom_line(aes(y = Median.Discharge)) + #want to specify y asthetic separately 
   geom_line(aes(y = p95.Discharge), color = "gray") +
   geom_line(aes(y = p5.Discharge), color = "gray") +  
   labs(x = "Day of Year", y = expression("Discharge (ft"^3*"/s)")) 
+
+#peak discharges occurring on seasonal level; seasonal snow melt
 ```
 
 
