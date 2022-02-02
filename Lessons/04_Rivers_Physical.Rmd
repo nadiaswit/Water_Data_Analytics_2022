@@ -21,7 +21,7 @@ How is climate change impacting discharge in streams and rivers? What are the ne
 ```{r, message = FALSE}
 getwd()
 
-# install.packages("lfstat")
+#install.packages("lfstat")
 
 library(tidyverse)
 library(dataRetrieval)
@@ -54,7 +54,7 @@ Let's import discharge data for the Eno River near Durham for all available date
 EnoDischarge <- readNWISdv(siteNumbers = "02085070",
                      parameterCd = "00060", # discharge (ft3/s)
                      startDate = "", 
-                     endDate = "2021-09-30")
+                     endDate = "2021-09-30") #USGS defines water year as Oct 1 - Sept 30; will capture winter season and not split it up
 
 names(EnoDischarge)[4:5] <- c("Discharge", "Approval.Code")
 
@@ -72,15 +72,15 @@ We can then compute recurrence intervals based on the first 30 years of data.
 ```{r}  
 EnoDischarge <- EnoDischarge %>%
   mutate(Year = year(Date), 
-         WaterYear = water_year(Date, origin = "usgs")) %>%
-  filter(WaterYear != "1963")
+         WaterYear = water_year(Date, origin = "usgs")) %>% #water year function based on date given; use usgs definition of water year
+  filter(WaterYear != "1963") #remove 1963; R computes year as a factor, put in quotes
 
 # Water Year is a factor. We want to re-classify as numeric.
-EnoDischarge$WaterYear <- as.numeric(as.character(EnoDischarge$WaterYear))
+EnoDischarge$WaterYear <- as.numeric(as.character(EnoDischarge$WaterYear)) #if factor, need to say character then numeric because it would instead rank instead of by year
 
 EnoRecurrence <- 
   EnoDischarge %>%
-  filter(WaterYear < 1994) %>%
+  filter(WaterYear < 1994) %>% #can now call a number since R knows it is a number
   group_by(WaterYear) %>%
   summarise(PeakDischarge = max(Discharge)) %>% 
   mutate(Rank = rank(-PeakDischarge), 
@@ -91,6 +91,8 @@ ggplot(EnoRecurrence, aes(x = WaterYear, y = PeakDischarge)) +
   geom_bar(stat = "identity") +
   labs(x = "Year", y = "Peak Discharge (cfs)")
 
+#recurrence interval - 31; probability is 3% that amount of more will occur 3% of the year
+
 ```
 
 Let's display and model the relationship between peak annual disharge and recurrence interval. We can use the statistical model to compute discharge for recurrence intervals that occur above the 30-year mark.
@@ -98,14 +100,16 @@ Let's display and model the relationship between peak annual disharge and recurr
 ggplot(EnoRecurrence, aes(x = RecurrenceInterval, y = PeakDischarge)) +
   geom_point() +
   scale_x_log10() +
-  geom_smooth(method = "lm")
+  geom_smooth(method = "lm", color="black", se=FALSE)
 
 Eno.RImodel <- lm(data = EnoRecurrence, PeakDischarge ~ log10(RecurrenceInterval))
 summary(Eno.RImodel)
 
 #What is the discharge for a 100-year flood in this system? a 500-year flood?
-Eno.RImodel$coefficients[1] + Eno.RImodel$coefficients[2]*log10(100)
+Eno.RImodel$coefficients[1] + Eno.RImodel$coefficients[2]*log10(100) 
 Eno.RImodel$coefficients[1] + Eno.RImodel$coefficients[2]*log10(500)
+
+#over 91% of the variability in model can be explained by the reccurrence interval
 ```
 
 What if we were to build a recurrence interval model for the most recent 30 years? How would this compare to the early period recurrence interval?
@@ -125,6 +129,8 @@ ggplot(EnoRecurrence, aes(x = RecurrenceInterval, y = PeakDischarge)) +
              aes(x = RecurrenceInterval, y = PeakDischarge)) +
   scale_x_log10()
 
+#"nonremarkable years" happen more frequently, higher recurrence intervals with high discharge are not happening as frequently
+
 Eno.RImodel.Late <- lm(data = EnoRecurrence.Late, PeakDischarge ~ log10(RecurrenceInterval))
 summary(Eno.RImodel.Late)
 Eno.RImodel.Late$coefficients
@@ -136,6 +142,8 @@ Eno.RImodel.Late$coefficients[1] + Eno.RImodel.Late$coefficients[2]*log10(500)
 Eno.RImodel$coefficients[1] + Eno.RImodel$coefficients[2]*log10(100)
 Eno.RImodel$coefficients[1] + Eno.RImodel$coefficients[2]*log10(500)
 
+#Eno river is not showing stationarity; discharge magnitude is increasing between recurrence intervals
+
 ```
 
 What differences did you see for the recurrence intervals built under different periods of record? How would your prediction of flood events differ if you were to use these models for forecasting purposes? 
@@ -144,7 +152,7 @@ What differences did you see for the recurrence intervals built under different 
 
 What would you recommend for a watershed manager seeking to build the most accurate recurrence interval model for the Eno River?
 
-> 
+> More recent
 
 
 ### Examining the effects of urbanization on discharge
@@ -181,6 +189,7 @@ ggplot(GreenDischarge, aes(x = Date, y = Discharge)) +
   geom_line() +
   labs(x = "Year", y = "Discharge (cfs)")
 
+#drop in peak discharge; built for flood control
 ```
 
 ## Bonus content: Flow Duration Curves and Low Flow Statistics
