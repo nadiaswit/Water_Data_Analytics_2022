@@ -17,20 +17,25 @@ editor_options:
 
 What might cause streams to have higher peak flow following a precipitation or snowmelt event? 
 
+Impervious surfaces; topography of watershed and slope leading to time of concentration - larger that channels precipitation in larger discharge event; subsurface flow with soil; magnitude of stream; drainage area and number of tributaries (order of stream)
+
 ## Session Set Up
 
 ```{r, message = FALSE}
 getwd()
 
-# install.packages("EcoHydRology")
+install.packages("EcoHydRology")
 
-library(EcoHydRology)
+library(EcoHydRology) #overwrites use of pipe
 library(tidyverse)
 library(dataRetrieval)
 library(lubridate)
 library(lfstat)
 
 theme_set(theme_classic())
+
+#call just a function
+#dyplyr::mutate
 ```
 
 
@@ -75,21 +80,30 @@ EnoDischarge$WaterYear <- as.numeric(as.character(EnoDischarge$WaterYear))
 ggplot(EnoDischarge, aes(x = Date, y = Discharge)) +
   geom_line(color = "gray") +
   geom_line(aes(y = Baseflow_lfstat)) +
-  # scale_y_log10() +
+  #if want to add new data set geom_line(data=something else, aes(y=baseflow)); can also assign plot and add geom_line(aes(y=))
+  scale_y_log10() +
   labs(x = "Year", y = "Discharge (cfs)")
+#different magnitudes - higher magnitude in storm flow compared to base flow
 
 # calculate baseflow with the EcoHydRology package.
 # Note: this function creates two columns which can be joined onto the original dataset.
 EnoDischarge_basesep_EcoHydro <- BaseflowSeparation(EnoDischarge$Discharge)
+#Baseflow separation function calculates stormflow and baseflow
 
-EnoDischarge <- cbind(EnoDischarge, EnoDischarge_basesep_EcoHydro)
+EnoDischarge <- cbind(EnoDischarge, EnoDischarge_basesep_EcoHydro) #able to combine because have the same number of rows
 
 # Let's compare the two approaches. How well do they match up, and is one biased a certain way?
 ggplot(EnoDischarge, aes(x = Baseflow_lfstat, y = bt)) +
-  geom_point(alpha = 0.1, size = 1) +
-  geom_abline(slope = 1, intercept = 0, color = "darkred")
+  geom_point(alpha = 0.1, size = 1) + #alpha = 1 is not transparent; alpha = 0 is invisible (90% transparent)
+  geom_abline(slope = 1, intercept = 0, color = "darkred") #1:1 line
+#similar values at smaller values; different range of values for larger values; estimates diverge based on event based flows
+#what? showing density of similar values - looking at how each model differs (darker color shows overlap)
 
 # How would we test that statistically? [add code here]
+#linear model - looking at slope of relationship between line
+#paired t-test; but that compares means of group (looking at differences in coefficient can help distinguish)
+
+summary(lm(data=EnoDischarge, bt ~ Baseflow_lfstat))
 
 ```
 
@@ -127,19 +141,22 @@ ggplot(EnoDischarge_ex, aes(x = Date, y = Discharge)) +
 Now, let's calculate some annual flow metrics for the Eno. We can add up daily discharge to calculate annual discharge. 
 
 ```{r}
+
 EnoDischarge_summary <- EnoDischarge %>%
   group_by(WaterYear) %>%
-  summarise(Discharge.acft.yr = sum(Discharge)*723.968, # what is this factor?
+  summarise(Discharge.acft.yr = sum(Discharge)*723.968, # what is this factor? converting to acre*ft/yr
             Baseflow.acft.yr = sum(bt)*723.968,
             Stormflow.acft.yr = sum(qft)*723.968,
             Prop.bf = Baseflow.acft.yr/Discharge.acft.yr,
             Prop.sf = Stormflow.acft.yr/Discharge.acft.yr) %>%
- mutate_if(is.numeric, round, 2) # notes here
+ mutate_if(is.numeric, round, 2) #if numeric, round to 2 decimal places
 
+EnoDischarge_summary$WaterYear <- as.numeric(as.character(EnoDischarge_summary$WaterYear))
+class(EnoDischarge_summary$WaterYear)
 
 ggplot(EnoDischarge_summary, aes(x = WaterYear, y = Discharge.acft.yr)) +
   geom_line() +
-  geom_line(aes(y = Baseflow.acft.yr), lty = 2)
+  geom_line(aes(y = Baseflow.acft.yr), lty = 2) #lty = changes line type
 
 ggplot(EnoDischarge_summary, aes(x = WaterYear, y = Prop.bf)) +
   geom_col()
@@ -163,7 +180,32 @@ After you've completed your task, find a partner who analyzed the other gage. Co
 This exercise is based off a case study in Zimmer et al. 2020: (Zero or not? Causes and consequences of zero-flow stream gage  readings)[https://wires.onlinelibrary.wiley.com/doi/10.1002/wat2.1436]
 
 ```{r}
+#group 2 
 
+DodgeDischarge <- readNWISdv(siteNumbers = "07139500",
+                     parameterCd = "00060", # discharge (ft3/s)
+                     startDate="1960-10-01",
+                     endDate = "2005-09-30")
+
+names(DodgeDischarge)[4:5] <- c("Discharge", "Approval.Code")
+
+attr(DodgeDischarge, "variableInfo")
+attr(DodgeDischarge, "siteInfo")
+
+DodgeDischarge_basesep_EcoHydro <- BaseflowSeparation(DodgeDischarge$Discharge)
+
+DodgeDischarge <- cbind(DodgeDischarge, DodgeDischarge_basesep_EcoHydro)
+
+ggplot(DodgeDischarge, aes(x = Date, y = Discharge)) +
+  geom_line(color = "blue") +
+  #geom_line(aes(y = Baseflow_lfstat), color = "darkred") +
+  geom_line(aes(y = bt)) +
+  scale_y_log10() +
+  labs(x = "Year", y = "Discharge (cfs)")
 
 ```
 
+Overlays 
+Over aquifer
+See non-perennial flows at Dodge City due to pumping
+Gaining stream becomes losing (because losing to GW pumping)

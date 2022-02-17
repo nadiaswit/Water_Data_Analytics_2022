@@ -7,6 +7,14 @@ geometry: margin=2.54cm
 editor_options: 
   chunk_output_type: console
 ---
+How to get color in legend
+ggplot(cars, aes(x=speed))+
+  geom_line(aes(y=dist, color = "total discharge"))+ #can define what aeesthetic is called
+  scale_color_manual(values=c("ttotal discharge"="gray")) #can then define what color it will be; can use multiple colors if unique names; want to name several colors (naming values with c("gray", "blue", "teal")
+  need to point to label we just created
+  can also do with linetype, scale_linetype
+  
+if color scale - would need a continuous variable with color scale
 
 ## Lesson Objectives
 1. Navigate and explore the LAGOSNE database and R package
@@ -27,9 +35,11 @@ library(lubridate)
 library(LAGOSNE)
 
 theme_set(theme_classic())
-options(scipen = 100)
+options(scipen = 4) #sets scientific notation - how many numbers to report out instead of exponential notation
 
 lagosne_get(dest_folder = LAGOSNE:::lagos_path(), overwrite = TRUE)
+#download lagose database to machine
+#different datasets within database
 
 ```
 
@@ -45,20 +55,22 @@ https://cont-limno.github.io/LAGOSNE/articles/lagosne_structure.html
 
 ```{r}
 # Load LAGOSNE data into R session
-LAGOSdata <- lagosne_load()
+LAGOSdata <- lagosne_load() #loads as list instead of df
 names(LAGOSdata)
 
 # If the package installation and data download has not worked, use this code: 
 # load(file = "./Data/Raw/LAGOSdata.rda")
 
 # Exploring the data types that are available
-LAGOSlocus <- LAGOSdata$locus
+LAGOSlocus <- LAGOSdata$locus #using $ because it is an object within the LAGOS list
 LAGOSstate <- LAGOSdata$state
 LAGOSnutrient <- LAGOSdata$epi_nutr
 
 # Tell R to treat lakeid as a factor, not a numeric value
-LAGOSlocus$lagoslakeid <- as.factor(LAGOSlocus$lagoslakeid)
+LAGOSlocus$lagoslakeid <- as.factor(LAGOSlocus$lagoslakeid) #won't treat as continuous variable anymore
 LAGOSnutrient$lagoslakeid <- as.factor(LAGOSnutrient$lagoslakeid)
+
+#these databased follow a star schema, so they can be linked together easily
 ```
 
 ## Wrangling data frames in LAGOSNE
@@ -71,6 +83,8 @@ For example, let's find out how many lakes are in each state. Note that LAGOSloc
 ```{r}
 # Join data frames
 LAGOSlocations <- left_join(LAGOSlocus, LAGOSstate, by = "state_zoneid")
+#left join will typically find the same column if named the same; but if different then need to specify name
+#by=c("colname1", "colname2")
 
 ggplot(LAGOSlocations, aes(x = state)) + 
   geom_bar(stat = "count")
@@ -78,6 +92,8 @@ ggplot(LAGOSlocations, aes(x = state)) +
 ggplot(LAGOSlocations, aes(x = state, y = lake_area_ha)) + 
   geom_boxplot() +
   scale_y_log10()
+
+#relevel, levels to reorder factor levels along x axis
 
 ```
 
@@ -97,10 +113,10 @@ $TSI(SD) = 10(6 - (ln SD/ln 2))$
 $TSI(TP) = 10(6 - (ln(48/TP)/ln 2))$
 
 TSI values correspond to the following trophic states: 
-**0-40**: Oligotrophic
-**40-50**: Mesotrophic
-**50-70**: Eutrophic
-**70-100**: Hypereutrophic
+**0-40**: Oligotrophic #low
+**40-50**: Mesotrophic #medium
+**50-70**: Eutrophic #high
+**70-100**: Hypereutrophic #very high
 
 ### Exploring the LAGOS nutrient data frame
 ```{r}
@@ -108,12 +124,12 @@ dim(LAGOSnutrient)
 class(LAGOSnutrient$sampledate)
 
 LAGOStrophic <- LAGOSnutrient %>%
-  left_join(., LAGOSlocations, by = "lagoslakeid") %>%
-  select(lagoslakeid, sampledate, chla, tp, secchi, 
+  left_join(., LAGOSlocations, by = "lagoslakeid") %>% #., refers to dataframe that is the same from the pipe; left_join needs to references
+  select(lagoslakeid, sampledate, chla, tp, secchi, #select certain columns (maybe can do $ after df)
          gnis_name, lake_area_ha, state, state_name) %>%
   mutate(sampleyear = year(sampledate), 
          samplemonth = month(sampledate)) %>%
-  drop_na(chla, tp, secchi, state)
+  drop_na(chla, tp, secchi, state) #drop na in certain columns
 
 ```
 
@@ -122,7 +138,7 @@ Let's look at observations of chl, secchi depth, and TP seasonally and over the 
 Add a line of code to facet the graphs by state.
 ```{r}
 ggplot(LAGOStrophic, aes(x = as.factor(samplemonth), y = chla)) +
-  geom_jitter(alpha = 0.2, size = 0.5) +
+  geom_jitter(alpha = 0.2, size = 0.5) + #putting geom jitter can show more information behind/in front of boxplot
   geom_boxplot(outlier.shape = NA, color = "#1f968b", fill = NA) +
   scale_y_log10() +
   labs(x = "Month", y = expression("Chl a ("*mu*"g/L)"))
@@ -132,12 +148,15 @@ ggplot(LAGOStrophic, aes(x = as.factor(samplemonth), y = secchi)) +
   geom_boxplot(outlier.shape = NA, color = "#1f968b", fill = NA) +
   scale_y_log10() +
   labs(x = "Month", y = "Secchi depth (m)") 
+#higher in winter months; indicate higher clarity; higher levels of chlorophyll in summer
+
 
 ggplot(LAGOStrophic, aes(x = as.factor(samplemonth), y = tp)) +
   geom_jitter(alpha = 0.2, size = 0.5) +
   geom_boxplot(outlier.shape = NA, color = "#1f968b", fill = NA) +
   scale_y_log10() +
   labs(x = "Month", y = expression("TP ("*mu*"g/L)"))
+#median is level; all the TP in water column (dissolved and within plankton); shifts in fractions are still accounted for in water column
 ```
 
 What do you notice about the seasonality of these variables? If we were to characterize a lake based on the value of a given variable, how might seasonality affect our interpretations?
@@ -154,7 +173,7 @@ LAGOStrophic <- LAGOStrophic %>%
   mutate(TSI.chl = round(10*(6 - (2.04 - 0.68*log(chla)/log(2)))),
          TSI.secchi = round(10*(6 - (log(secchi)/log(2)))), 
          TSI.tp = round(10*(6 - (log(48/tp)/log(2)))), 
-         trophic.class = case_when(TSI.chl < 40 ~ "Oligotrophic",
+         trophic.class = case_when(TSI.chl < 40 ~ "Oligotrophic", #similar to if else function
                                    TSI.chl >= 40 & TSI.chl < 50 ~ "Mesotrophic",
                                    TSI.chl >= 50 & TSI.chl< 70 ~ "Eutrophic",
                                    TSI.chl >= 70 ~ "Hypereutrophic"))
@@ -165,10 +184,11 @@ LAGOStrophic$trophic.class <- factor(LAGOStrophic$trophic.class,
                                      levels = c("Oligotrophic", "Mesotrophic", "Eutrophic", "Hypereutrophic"))
 
 #scales::show_col(colormap(colormap = colormaps$magma, nshades=16))
+#map for HEX codes for continuous color palette
 
 # Let's save the LAGOStrophic dataset as a csv in our Data folder. 
 
-write.csv(LAGOStrophic, file = "./Data/Processed/LAGOStrophic.csv", row.names = FALSE)
+write.csv(LAGOStrophic, file = "./Data/Processed/LAGOStrophic.csv", row.names = FALSE) #removes row names that has numbers
 ```
 
 Now let's compare TSI values calculated from chl, secchi depth, and TP. If these were all perfectly equivalent metrics, all points should line up on the 1:1 line. 
